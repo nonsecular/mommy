@@ -84,3 +84,11 @@ if SUPPORT_CHANNEL and not re.match(r"(?:http|https)://", SUPPORT_CHANNEL):
 
 if SUPPORT_GROUP and not re.match(r"(?:http|https)://", SUPPORT_GROUP):
     raise SystemExit("SUPPORT_GROUP must start with https://")
+    
+# ================= STRING SESSIONS ================= #
+
+STRING1 = os.getenv("STRING_SESSION")
+STRING2 = os.getenv("STRING_SESSION2")
+STRING3 = os.getenv("STRING_SESSION3")
+STRING4 = os.getenv("STRING_SESSION4")
+STRING5 = os.getenv("STRING_SESSION5")
