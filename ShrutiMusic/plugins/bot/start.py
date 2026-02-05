@@ -1,6 +1,6 @@
 import time
 import random
-from typing import Final, List
+from typing import Final, List, Optional
 
 from pyrogram import filters
 from pyrogram.enums import ChatType
@@ -34,9 +34,9 @@ from strings import get_string
 from config import BANNED_USERS
 
 
-# ======================================================
+# =====================================================
 #                    CONSTANTS
-# ======================================================
+# =====================================================
 
 RANDOM_STICKERS: Final[List[str]] = [
     "CAACAgUAAxkBAAEEnzFor872a_gYPHu-FxIwv-nxmZ5U8QACyBUAAt5hEFVBanMxRZCc7h4E",
@@ -46,19 +46,47 @@ RANDOM_STICKERS: Final[List[str]] = [
 ]
 
 
-# ======================================================
-#               SAFE MEDIA SENDER
-# ======================================================
+# =====================================================
+#          INLINE BUTTONS – AUTO SANITIZER
+# =====================================================
+
+def sanitize_buttons(
+    markup: Optional[InlineKeyboardMarkup],
+) -> Optional[InlineKeyboardMarkup]:
+    """
+    Removes all InlineKeyboardButtons that contain user_id
+    Prevents PEER_ID_INVALID crashes completely
+    """
+    if not markup:
+        return None
+
+    safe_keyboard = []
+
+    for row in markup.inline_keyboard:
+        safe_row = []
+        for btn in row:
+            # ❌ user_id buttons are dangerous
+            if getattr(btn, "user_id", None):
+                continue
+            safe_row.append(btn)
+        if safe_row:
+            safe_keyboard.append(safe_row)
+
+    return InlineKeyboardMarkup(safe_keyboard) if safe_keyboard else None
+
+
+# =====================================================
+#             SAFE MEDIA SENDER (HARDENED)
+# =====================================================
 
 async def safe_reply_video(
     message: Message,
     video: str,
     caption: str,
-    reply_markup: InlineKeyboardMarkup | None = None,
+    reply_markup: Optional[InlineKeyboardMarkup] = None,
 ):
-    """
-    Try to send video, fallback to photo if video fails
-    """
+    reply_markup = sanitize_buttons(reply_markup)
+
     try:
         return await message.reply_video(
             video=video,
@@ -80,9 +108,9 @@ async def send_random_sticker(message: Message):
         await message.reply_sticker(random.choice(RANDOM_STICKERS))
 
 
-# ======================================================
+# =====================================================
 #                   PRIVATE /start
-# ======================================================
+# =====================================================
 
 @app.on_message(filters.command("start") & filters.private & ~BANNED_USERS)
 @LanguageStart
@@ -96,7 +124,6 @@ async def start_private(_, message: Message, lang):
     if len(args) > 1:
         cmd = args[1]
 
-        # ---- HELP ----
         if cmd.startswith("help"):
             return await safe_reply_video(
                 message,
@@ -105,17 +132,13 @@ async def start_private(_, message: Message, lang):
                 InlineKeyboardMarkup(help_pannel_page1(lang)),
             )
 
-        # ---- SUDO ----
         if cmd.startswith("sud"):
             return await sudoers_list(app, message, lang)
 
-        # ---- INFO ----
         if cmd.startswith("inf"):
             return await send_video_info(message, lang, cmd)
 
-    # ---- NORMAL START ----
     UP, CPU, RAM, DISK = await bot_sys_stats()
-    buttons = InlineKeyboardMarkup(private_panel(lang))
 
     await safe_reply_video(
         message,
@@ -128,13 +151,13 @@ async def start_private(_, message: Message, lang):
             CPU,
             RAM,
         ),
-        buttons,
+        InlineKeyboardMarkup(private_panel(lang)),
     )
 
 
-# ======================================================
+# =====================================================
 #                   GROUP /start
-# ======================================================
+# =====================================================
 
 @app.on_message(filters.command("start") & filters.group & ~BANNED_USERS)
 @LanguageStart
@@ -143,25 +166,24 @@ async def start_group(_, message: Message, lang):
     await send_random_sticker(message)
 
     uptime = get_readable_time(int(time.time() - _boot_))
-    buttons = InlineKeyboardMarkup(start_panel(lang))
 
     await safe_reply_video(
         message,
         config.START_VID_URL,
         lang["start_1"].format(app.mention, uptime),
-        buttons,
+        InlineKeyboardMarkup(start_panel(lang)),
     )
 
     await add_served_chat(message.chat.id)
 
 
-# ======================================================
+# =====================================================
 #                VIDEO INFO HANDLER
-# ======================================================
+# =====================================================
 
 async def send_video_info(message: Message, lang, cmd: str):
 
-    loading = await message.reply_text("🔎 Searching...")
+    wait = await message.reply_text("🔍 Searching...")
     video_id = cmd.replace("info_", "")
     query = f"https://www.youtube.com/watch?v={video_id}"
 
@@ -169,7 +191,7 @@ async def send_video_info(message: Message, lang, cmd: str):
     results = (await search.next()).get("result")
 
     if not results:
-        return await loading.edit("❌ No results found")
+        return await wait.edit("❌ No results found.")
 
     r = results[0]
 
@@ -180,7 +202,7 @@ async def send_video_info(message: Message, lang, cmd: str):
         ]]
     )
 
-    await loading.delete()
+    await wait.delete()
 
     await app.send_photo(
         message.chat.id,
@@ -194,13 +216,13 @@ async def send_video_info(message: Message, lang, cmd: str):
             r["channel"]["name"],
             app.mention,
         ),
-        reply_markup=buttons,
+        reply_markup=sanitize_buttons(buttons),
     )
 
 
-# ======================================================
+# =====================================================
 #                   WELCOME HANDLER
-# ======================================================
+# =====================================================
 
 @app.on_message(filters.new_chat_members, group=-1)
 async def welcome(_, message: Message):
@@ -210,11 +232,9 @@ async def welcome(_, message: Message):
             lang_code = await get_lang(message.chat.id)
             lang = get_string(lang_code)
 
-            # ---- BAN CHECK ----
             if await is_banned_user(member.id):
                 return await message.chat.ban_member(member.id)
 
-            # ---- BOT JOIN ----
             if member.id == app.id:
 
                 if message.chat.type != ChatType.SUPERGROUP:
