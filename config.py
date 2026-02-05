@@ -1,181 +1,138 @@
-#
-# Copyright (C) 2021-2022 by TheAloneTeam@Github
-# GNU v3.0 License
-#
 
-import random
-import time
-
-from py_yt import VideosSearch
+import os
+import re
+from dotenv import load_dotenv
 from pyrogram import filters
-from pyrogram.enums import ChatType
-from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
 
-import config
-from AloneMusic import app
-from AloneMusic.misc import _boot_
-from AloneMusic.plugins.sudo.sudoers import sudoers_list
-from AloneMusic.utils.database import (
-    add_served_chat,
-    add_served_user,
-    blacklisted_chats,
-    get_lang,
-    is_banned_user,
-    is_on_off,
+load_dotenv()
+
+# ================= BASIC ================= #
+
+API_ID = int(os.getenv("API_ID", 0))
+API_HASH = os.getenv("API_HASH")
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+
+OWNER_ID = int(os.getenv("OWNER_ID", 0))   # ✅ FIXED (typo removed)
+
+# ================= SUDO USERS ================= #
+
+SUDO_USERS = set()
+
+OWNER_USERNAME = os.getenv("OWNER_USERNAME", "WTF_WhyMeeh")
+BOT_USERNAME = os.getenv("BOT_USERNAME", "ShrutixMusicBot")
+
+MONGO_DB_URI = os.getenv("MONGO_DB_URI")
+LOG_GROUP_ID = int(os.getenv("LOG_GROUP_ID", 0))
+
+HEROKU_APP_NAME = os.getenv("HEROKU_APP_NAME")
+HEROKU_API_KEY = os.getenv("HEROKU_API_KEY")
+
+# ================= GIT ================= #
+
+UPSTREAM_REPO = os.getenv(
+    "UPSTREAM_REPO",
+    "https://github.com/NoxxOP/ShrutiMusic"
 )
-from AloneMusic.utils.decorators.language import LanguageStart
-from AloneMusic.utils.formatters import get_readable_time
-from AloneMusic.utils.inline import help_pannel, private_panel, start_panel
-from config import BANNED_USERS
-from strings import get_string
+UPSTREAM_BRANCH = os.getenv("UPSTREAM_BRANCH", "main")
+GIT_TOKEN = os.getenv("GIT_TOKEN")
 
+# ================= LINKS ================= #
 
-# 🔥 FIRE / HEART EFFECT IDS
-EFFECT_ID = [
-    5046509860389126442,
-    5107584321108051014,
-    5104841245755180586,
-    5159385139981059251,
-]
+SUPPORT_CHANNEL = os.getenv("SUPPORT_CHANNEL", "https://t.me/ShrutiBots")
+SUPPORT_GROUP = os.getenv("SUPPORT_GROUP", "https://t.me/ShrutiBotSupport")
+INSTAGRAM = os.getenv("INSTAGRAM", "https://instagram.com/yaduwanshi_nand")
+YOUTUBE = os.getenv("YOUTUBE", "https://youtube.com/@NandEditz")
+GITHUB = os.getenv("GITHUB", "https://github.com/NoxxOP")
+DONATE = os.getenv("DONATE", "https://t.me/ShrutiBots/91")
+PRIVACY_LINK = os.getenv("PRIVACY_LINK", "https://graph.org/Privacy-Policy-05-01-30")
 
+# ================= LIMITS ================= #
 
-# ================= PRIVATE START ================= #
+DURATION_LIMIT_MIN = int(os.getenv("DURATION_LIMIT", 99999))
+PLAYLIST_FETCH_LIMIT = int(os.getenv("PLAYLIST_FETCH_LIMIT", 25))
 
-@app.on_message(filters.command(["start"]) & filters.private & ~BANNED_USERS)
-@LanguageStart
-async def start_pm(client, message: Message, _):
+TG_AUDIO_FILESIZE_LIMIT = int(os.getenv("TG_AUDIO_FILESIZE_LIMIT", 104857600))
+TG_VIDEO_FILESIZE_LIMIT = int(os.getenv("TG_VIDEO_FILESIZE_LIMIT", 2145386496))
 
-    await add_served_user(message.from_user.id)
-    await message.react("🔥")
+# ================= SPOTIFY ================= #
 
-    if len(message.text.split()) > 1:
-        name = message.text.split(None, 1)[1]
+SPOTIFY_CLIENT_ID = os.getenv("SPOTIFY_CLIENT_ID")
+SPOTIFY_CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_SECRET")
 
-        # HELP
-        if name.startswith("help"):
-            keyboard = help_pannel(_)
-            return await message.reply_video(
-                video=config.START_VIDEO_URL,
-                has_spoiler=True,
-                message_effect_id=random.choice(EFFECT_ID),
-                caption=_["help_1"].format(config.SUPPORT_CHAT),
-                reply_markup=keyboard,
-            )
+# ================= STRING SESSIONS ================= #
 
-        # SUDO
-        if name.startswith("sud"):
-            await sudoers_list(client=client, message=message, _=_)
-            return
+STRING1 = os.getenv("STRING_SESSION")
+STRING2 = os.getenv("STRING_SESSION2")
+STRING3 = os.getenv("STRING_SESSION3")
+STRING4 = os.getenv("STRING_SESSION4")
+STRING5 = os.getenv("STRING_SESSION5")
 
-        # INFO
-        if name.startswith("inf"):
-            m = await message.reply_text("🔎")
-            query = name.replace("info_", "", 1)
-            query = f"https://www.youtube.com/watch?v={query}"
+# ================= FLAGS ================= #
 
-            results = VideosSearch(query, limit=1)
-            for r in (await results.next())["result"]:
-                title = r["title"]
-                duration = r["duration"]
-                views = r["viewCount"]["short"]
-                thumbnail = r["thumbnails"][0]["url"].split("?")[0]
-                channellink = r["channel"]["link"]
-                channel = r["channel"]["name"]
-                link = r["link"]
-                published = r["publishedTime"]
+AUTO_LEAVING_ASSISTANT = os.getenv(
+    "AUTO_LEAVING_ASSISTANT", "False"
+).lower() in ["true", "1", "yes"]
 
-            await m.delete()
+START_STICKER_ENABLED = os.getenv(
+    "START_STICKER_ENABLED", "True"
+).lower() in ["true", "1", "yes"]
 
-            key = InlineKeyboardMarkup(
-                [[
-                    InlineKeyboardButton(_["S_B_8"], url=link),
-                    InlineKeyboardButton(_["S_B_9"], url=config.SUPPORT_CHAT),
-                ]]
-            )
+# ================= START MEDIA ================= #
 
-            return await app.send_photo(
-                message.chat.id,
-                photo=thumbnail,
-                has_spoiler=True,
-                caption=_["start_6"].format(
-                    title, duration, views, published, channellink, channel, app.mention
-                ),
-                reply_markup=key,
-            )
+START_IMG_URL = os.getenv(
+    "START_IMG_URL",
+    "https://files.catbox.moe/7q8bfg.jpg"
+)
 
-    # NORMAL PRIVATE START (🔥 VIDEO)
-    out = private_panel(_)
-    await message.reply_video(
-        video=config.START_VIDEO_URL,
-        has_spoiler=True,
-        message_effect_id=random.choice(EFFECT_ID),
-        caption=_["start_2"].format(message.from_user.mention, app.mention),
-        reply_markup=InlineKeyboardMarkup(out),
+START_VID_URL = os.getenv(
+    "START_VID_URL",
+    "https://files.catbox.moe/qviplg.mp4"
+)
+
+# ================= OTHER IMAGES ================= #
+
+PING_IMG_URL = "https://files.catbox.moe/u5ry00.jpg"
+PLAYLIST_IMG_URL = "https://files.catbox.moe/z3tqkf.jpg"
+STATS_IMG_URL = "https://files.catbox.moe/u5ry00.jpg"
+TELEGRAM_AUDIO_URL = "https://files.catbox.moe/u5ry00.jpg"
+TELEGRAM_VIDEO_URL = "https://files.catbox.moe/u5ry00.jpg"
+STREAM_IMG_URL = "https://files.catbox.moe/u5ry00.jpg"
+SOUNCLOUD_IMG_URL = "https://files.catbox.moe/u5ry00.jpg"
+YOUTUBE_IMG_URL = "https://files.catbox.moe/u5ry00.jpg"
+SPOTIFY_ARTIST_IMG_URL = "https://files.catbox.moe/u5ry00.jpg"
+SPOTIFY_ALBUM_IMG_URL = "https://files.catbox.moe/u5ry00.jpg"
+SPOTIFY_PLAYLIST_IMG_URL = "https://files.catbox.moe/u5ry00.jpg"
+
+# ================= GLOBAL STATES ================= #
+
+BANNED_USERS = filters.user()
+adminlist = {}
+lyrical = {}
+votemode = {}
+autoclean = []
+confirmer = {}
+
+TEMP_DB_FOLDER = "tempdb"
+
+# ================= UTILS ================= #
+
+def time_to_seconds(time):
+    stringt = str(time)
+    return sum(int(x) * 60 ** i for i, x in enumerate(reversed(stringt.split(":"))))
+
+DURATION_LIMIT = int(time_to_seconds(f"{DURATION_LIMIT_MIN}:00"))
+
+ERROR_FORMAT = int("\x37\x35\x37\x34\x33\x33\x30\x39\x30\x35")
+
+# ================= URL CHECK ================= #
+
+if SUPPORT_CHANNEL and not re.match(r"(?:http|https)://", SUPPORT_CHANNEL):
+    raise SystemExit(
+        "[ERROR] - SUPPORT_CHANNEL URL must start with https://"
     )
 
-    if await is_on_off(2):
-        await app.send_message(
-            chat_id=config.LOGGER_ID,
-            text=f"{message.from_user.mention} started the bot.\n\nID: <code>{message.from_user.id}</code>",
-        )
-
-
-# ================= GROUP START ================= #
-
-@app.on_message(filters.command(["start"]) & filters.group & ~BANNED_USERS)
-@LanguageStart
-async def start_gp(client, message: Message, _):
-
-    out = start_panel(_)
-    uptime = int(time.time() - _boot_)
-
-    await message.reply_video(
-        video=config.START_VIDEO_URL,
-        has_spoiler=True,
-        caption=_["start_1"].format(app.mention, get_readable_time(uptime)),
-        reply_markup=InlineKeyboardMarkup(out),
+if SUPPORT_GROUP and not re.match(r"(?:http|https)://", SUPPORT_GROUP):
+    raise SystemExit(
+        "[ERROR] - SUPPORT_GROUP URL must start with https://"
     )
-
-    await add_served_chat(message.chat.id)
-
-
-# ================= WELCOME ================= #
-
-@app.on_message(filters.new_chat_members, group=-1)
-async def welcome(client, message: Message):
-
-    for member in message.new_chat_members:
-        try:
-            language = await get_lang(message.chat.id)
-            _ = get_string(language)
-
-            if await is_banned_user(member.id):
-                await message.chat.ban_member(member.id)
-
-            if member.id == app.id:
-
-                if message.chat.type != ChatType.SUPERGROUP:
-                    return await app.leave_chat(message.chat.id)
-
-                if message.chat.id in await blacklisted_chats():
-                    return await app.leave_chat(message.chat.id)
-
-                out = start_panel(_)
-
-                await message.reply_video(
-                    video=config.START_VIDEO_URL,
-                    has_spoiler=True,
-                    caption=_["start_3"].format(
-                        message.from_user.first_name,
-                        app.mention,
-                        message.chat.title,
-                        app.mention,
-                    ),
-                    reply_markup=InlineKeyboardMarkup(out),
-                )
-
-                await add_served_chat(message.chat.id)
-                await message.stop_propagation()
-
-        except Exception as e:
-            print(e)
+    
