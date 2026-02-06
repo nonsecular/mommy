@@ -1,8 +1,8 @@
 #
-# Copyright (C) 2021-2022 by TheAloneTeam@Github
-# GNU v3.0 License
+# ShrutiMusic - Animated Start Video Version
 #
 
+import asyncio
 import time
 
 from py_yt import VideosSearch
@@ -24,7 +24,7 @@ from ShrutiMusic.utils.database import (
 )
 from ShrutiMusic.utils.decorators.language import LanguageStart
 from ShrutiMusic.utils.formatters import get_readable_time
-from ShrutiMusic.utils.inline import help_pannel_page1, private_panel, start_panel
+from ShrutiMusic.utils.inline import help_pannel, private_panel, start_panel
 from config import BANNED_USERS
 from strings import get_string
 
@@ -36,64 +36,38 @@ from strings import get_string
 async def start_pm(client, message: Message, _):
 
     await add_served_user(message.from_user.id)
-    await message.react("🔥")
 
+    # 🔥 Animated Loading
+    msg = await message.reply_text("✨ Starting Music Engine...")
+    await asyncio.sleep(1)
+
+    await msg.edit("🎶 Loading Music Modules...")
+    await asyncio.sleep(1)
+
+    await msg.edit("🔊 Connecting Voice System...")
+    await asyncio.sleep(1)
+
+    await msg.edit("✅ Ready To Play Music!")
+
+    # ----- PARAM START -----
     if len(message.text.split()) > 1:
         name = message.text.split(None, 1)[1]
 
-        # HELP
         if name.startswith("help"):
-            keyboard = help_pannel_page1(_)
+            keyboard = help_pannel(_)
+            await msg.delete()
             return await message.reply_video(
                 video=config.START_VIDEO_URL,
                 has_spoiler=True,
-                caption=_["help_1"].format(config.SUPPORT_GROUP),
+                caption=_["help_1"].format(config.SUPPORT_CHAT),
                 reply_markup=keyboard,
             )
 
-        # SUDO
         if name.startswith("sud"):
-            await sudoers_list(client=client, message=message, _=_)
-            return
+            await msg.delete()
+            return await sudoers_list(client=client, message=message, _=_)
 
-        # INFO
-        if name.startswith("inf"):
-            m = await message.reply_text("🔎")
-            query = name.replace("info_", "", 1)
-            query = f"https://www.youtube.com/watch?v={query}"
-
-            results = VideosSearch(query, limit=1)
-            for r in (await results.next())["result"]:
-                title = r["title"]
-                duration = r["duration"]
-                views = r["viewCount"]["short"]
-                thumbnail = r["thumbnails"][0]["url"].split("?")[0]
-                channellink = r["channel"]["link"]
-                channel = r["channel"]["name"]
-                link = r["link"]
-                published = r["publishedTime"]
-
-            await m.delete()
-
-            key = InlineKeyboardMarkup(
-                [[
-                    InlineKeyboardButton(_["S_B_8"], url=link),
-                    InlineKeyboardButton(_["S_B_9"], url=config.SUPPORT_GROUP),
-                ]]
-            )
-
-            return await app.send_photo(
-                message.chat.id,
-                photo=thumbnail,
-                has_spoiler=True,
-                caption=_["start_6"].format(
-                    title, duration, views, published,
-                    channellink, channel, app.mention
-                ),
-                reply_markup=key,
-            )
-
-    # NORMAL PRIVATE START
+    # ----- NORMAL START -----
     out = private_panel(_)
 
     await message.reply_video(
@@ -106,11 +80,7 @@ async def start_pm(client, message: Message, _):
         reply_markup=InlineKeyboardMarkup(out),
     )
 
-    if await is_on_off(2):
-        await app.send_message(
-            chat_id=config.LOG_GROUP_ID,
-            text=f"{message.from_user.mention} started the bot.\n\nID: <code>{message.from_user.id}</code>",
-        )
+    await msg.delete()
 
 
 # ================= GROUP START ================= #
