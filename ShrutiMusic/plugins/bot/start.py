@@ -24,7 +24,7 @@ from ShrutiMusic.utils.database import (
 )
 from ShrutiMusic.utils.decorators.language import LanguageStart
 from ShrutiMusic.utils.formatters import get_readable_time
-from ShrutiMusic.utils.inline import help_panel, private_panel, start_panel
+from ShrutiMusic.utils.inline import help_pannel_page1, private_panel, start_panel
 from config import BANNED_USERS
 from strings import get_string
 
@@ -43,7 +43,7 @@ async def start_pm(client, message: Message, _):
 
         # HELP
         if name.startswith("help"):
-            keyboard = help_panel(_)
+            keyboard = help_pannel_page1(_)
             return await message.reply_video(
                 video=config.START_VIDEO_URL,
                 has_spoiler=True,
