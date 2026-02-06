@@ -11,17 +11,17 @@ from pyrogram.enums import ChatType
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
 
 import config
-from ShrutiMusicimport app
-fromShrutiMusic.misc import _boot_
-fromShrutiMusic.plugins.sudo.sudoers import sudoers_list
-fromShrutiMusic.utils.database import (
+from ShrutiMusic import app
+from ShrutiMusic.misc import _boot_
+from ShrutiMusic.plugins.sudo.sudoers import sudoers_list
+from ShrutiMusic.utils.database import (
     add_served_chat, add_served_user,
     blacklisted_chats, get_lang,
     is_banned_user, is_on_off
 )
-fromShrutiMusic.utils.decorators.language import LanguageStart
-fromShrutiMusic.utils.formatters import get_readable_time
-fromShrutiMusic.utils.inline import help_pannel, private_panel, start_panel
+from ShrutiMusic.utils.decorators.language import LanguageStart
+from ShrutiMusic.utils.formatters import get_readable_time
+from ShrutiMusic.utils.inline import help_pannel, private_panel, start_panel
 from config import BANNED_USERS
 from strings import get_string
 
