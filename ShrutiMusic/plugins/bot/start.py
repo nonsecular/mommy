@@ -25,18 +25,9 @@ from ShrutiMusic.utils.database import (
 )
 from ShrutiMusic.utils.decorators.language import LanguageStart
 from ShrutiMusic.utils.formatters import get_readable_time
-from ShrutiMusic.utils.inline import help_pannel_page1, private_panel, start_panel
+from ShrutiMusic.utils.inline import help_pannel, private_panel, start_panel
 from config import BANNED_USERS
 from strings import get_string
-
-
-# 🔥 FIRE / HEART EFFECT IDS
-EFFECT_ID = [
-    5046509860389126442,
-    5107584321108051014,
-    5104841245755180586,
-    5159385139981059251,
-]
 
 
 # ================= PRIVATE START ================= #
@@ -57,8 +48,7 @@ async def start_pm(client, message: Message, _):
             return await message.reply_video(
                 video=config.START_VIDEO_URL,
                 has_spoiler=True,
-                message_effect_id=random.choice(EFFECT_ID),
-                caption=_["help_1"].format(config.SUPPORT_CHAT),
+                caption=_["help_1"].format(config.SUPPORT_GROUP),
                 reply_markup=keyboard,
             )
 
@@ -89,7 +79,7 @@ async def start_pm(client, message: Message, _):
             key = InlineKeyboardMarkup(
                 [[
                     InlineKeyboardButton(_["S_B_8"], url=link),
-                    InlineKeyboardButton(_["S_B_9"], url=config.SUPPORT_CHAT),
+                    InlineKeyboardButton(_["S_B_9"], url=config.SUPPORT_GROUP),
                 ]]
             )
 
@@ -98,24 +88,28 @@ async def start_pm(client, message: Message, _):
                 photo=thumbnail,
                 has_spoiler=True,
                 caption=_["start_6"].format(
-                    title, duration, views, published, channellink, channel, app.mention
+                    title, duration, views, published,
+                    channellink, channel, app.mention
                 ),
                 reply_markup=key,
             )
 
-    # NORMAL PRIVATE START (🔥 VIDEO)
+    # NORMAL PRIVATE START
     out = private_panel(_)
+
     await message.reply_video(
         video=config.START_VIDEO_URL,
         has_spoiler=True,
-        message_effect_id=random.choice(EFFECT_ID),
-        caption=_["start_2"].format(message.from_user.mention, app.mention),
+        caption=_["start_2"].format(
+            message.from_user.mention,
+            app.mention
+        ),
         reply_markup=InlineKeyboardMarkup(out),
     )
 
     if await is_on_off(2):
         await app.send_message(
-            chat_id=config.LOGGER_ID,
+            chat_id=config.LOG_GROUP_ID,
             text=f"{message.from_user.mention} started the bot.\n\nID: <code>{message.from_user.id}</code>",
         )
 
@@ -132,7 +126,10 @@ async def start_gp(client, message: Message, _):
     await message.reply_video(
         video=config.START_VIDEO_URL,
         has_spoiler=True,
-        caption=_["start_1"].format(app.mention, get_readable_time(uptime)),
+        caption=_["start_1"].format(
+            app.mention,
+            get_readable_time(uptime)
+        ),
         reply_markup=InlineKeyboardMarkup(out),
     )
 
