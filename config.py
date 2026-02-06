@@ -84,8 +84,8 @@ START_IMG_URL = os.getenv(
     "https://files.catbox.moe/7q8bfg.jpg"
 )
 
-START_VID_URL = os.getenv(
-    "START_VID_URL",
+START_VIDEO_URL = os.getenv(
+    "START_VIDEO_URL",
     "https://files.catbox.moe/qviplg.mp4"
 )
 
